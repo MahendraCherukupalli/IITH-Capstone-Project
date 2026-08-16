@@ -1,0 +1,44 @@
+# ── Environment & Secrets ──────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ── Python & Build Caches ─────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.deepeval/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+dist/
+build/
+*.egg-info/
+
+# ── Virtual Environments ─────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+
+# ── Operating System & Editor Metadata ─────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Local Runtime Output & Database Files ──────────────────────────────────
+output/*.jsonl
+!output/.gitkeep
+qdrant_db/
+*.log

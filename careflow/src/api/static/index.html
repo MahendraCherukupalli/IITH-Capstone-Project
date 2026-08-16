@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CareFlow - Care Coordination Assistant</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- Top Header Navigation -->
+  <header class="header">
+    <div class="brand">
+      <div class="brand-icon">
+        <i class="fa-solid fa-heart-pulse" style="color: #ffffff; font-size: 1.1rem;"></i>
+      </div>
+      <div class="brand-title">CareFlow - Care Coordination Assistant</div>
+    </div>
+
+  </header>
+
+  <!-- Main Split Layout Container (70% Coordinator / 30% Patient) -->
+  <div class="main-container">
+
+    <!-- 70% LEFT: Care Coordinator Workspace -->
+    <main class="panel coordinator-panel">
+      <!-- Coordinator Top Header Bar with Section Title and Observability Toggle -->
+      <div class="panel-header coordinator-header">
+        <div class="panel-title">
+          <i class="fa-solid fa-user-doctor" style="color: var(--cyan-accent);"></i>
+          Care Coordinator Workspace
+        </div>
+        <button id="btn-toggle-obs" class="btn-obs-toggle" title="Toggle Observability Dashboard View">
+          <i class="fa-solid fa-chart-line"></i>
+          <span id="obs-toggle-label">Observability</span>
+        </button>
+      </div>
+
+      <!-- VIEW 1: Workflow & EHR Console View (Default) -->
+      <div id="coordinator-workflow-view" class="coordinator-view active">
+        <!-- Patient EHR Hub (Left sub-card in 70% space) -->
+        <div class="ehr-hub-side">
+          <div class="sub-panel-title">
+            <div class="title-text-group">
+              <i class="fa-solid fa-id-card" style="color: var(--cyan-accent);"></i>
+              <span>Patient EHR Hub</span>
+            </div>
+            <div class="ehr-search-wrapper">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input type="text" id="patient-search-input" placeholder="Search patient..." autocomplete="off">
+              <div id="patient-search-results" class="search-dropdown-menu" style="display: none;"></div>
+            </div>
+          </div>
+
+          <!-- Active Patient EHR Card -->
+          <div class="ehr-card" id="ehr-card">
+            <div class="ehr-empty-placeholder">
+              <div class="empty-icon-wrap">
+                <i class="fa-solid fa-folder-open"></i>
+              </div>
+              <h4 class="empty-title">No Patient Selected</h4>
+              <p class="empty-subtext">Please search and select a patient to view health records.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Coordinator Workflow Trace & Execution Stream (Right sub-card in 70% space) -->
+        <div class="coordinator-stream-area">
+          <div class="sub-panel-title">
+            <div class="title-text-group">
+              <i class="fa-solid fa-network-wired" style="color: var(--violet-accent);"></i>
+              <span>Coordinator Console &amp; Workflow Trace</span>
+            </div>
+          </div>
+
+          <!-- Workflow Trace Stream Container -->
+          <div class="coordinator-messages" id="coordinator-messages">
+            <div class="workflow-log-entry system">
+              <div class="log-node-header">
+                <div class="log-title-group">
+                  <i class="fa-solid fa-circle-play" style="color: var(--emerald-accent);"></i>
+                  <span class="log-node-title emerald">SYSTEM ENGINE ACTIVE</span>
+                </div>
+                <span class="log-timestamp" id="sys-engine-timestamp">[--:--:--]</span>
+              </div>
+              <div class="log-node-body">
+                <div>CareFlow Multi-Agent Graph Engine active &bull; Waiting for patient query...</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dynamic HITL Alert Banner (Hidden by default) -->
+          <div id="hitl-banner" class="hitl-banner" style="display: none;">
+            <div class="hitl-title">
+              <i class="fa-solid fa-shield-cat fa-lg"></i>
+              CLINICAL SAFETY REVIEW REQUIRED: Human Approval Needed
+            </div>
+            <div style="font-size: 0.8rem; color: var(--text-muted);" id="hitl-reason-text">
+              Reason: Case involves clinical advice / emergent symptoms.
+            </div>
+            <div class="hitl-actions">
+              <button id="btn-hitl-approve" class="btn-hitl btn-approve">
+                <i class="fa-solid fa-check"></i> Approve Care Plan
+              </button>
+              <button id="btn-hitl-reject" class="btn-hitl btn-reject">
+                <i class="fa-solid fa-user-doctor"></i> Escalate to Clinician
+              </button>
+            </div>
+          </div>
+
+          <!-- Coordinator Co-Pilot Command & Dispatch Bar -->
+          <div class="coordinator-input-bar">
+            <div class="coordinator-input-wrapper">
+              <i class="fa-solid fa-user-doctor" style="color: var(--cyan-accent);"></i>
+              <input type="text" id="coordinator-copilot-input" placeholder="Ask Co-Pilot for analysis, or type custom note to send to patient..." autocomplete="off">
+            </div>
+            <button id="btn-coordinator-analyze" class="btn-coord-action btn-analyze" title="Run Co-Pilot AI Analysis">
+              <i class="fa-solid fa-brain"></i> Analyze
+            </button>
+            <button id="btn-coordinator-dispatch" class="btn-coord-action btn-dispatch" title="Send note directly to Patient Chat">
+              <i class="fa-solid fa-paper-plane"></i> Send to Patient
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- VIEW 2: Observability & Telemetry Dashboard (Hidden by default, shown when toggled) -->
+      <div id="coordinator-observability-view" class="coordinator-view hidden">
+        <div class="obs-dashboard">
+          <div class="sub-panel-title" style="display: flex; justify-content: space-between; align-items: center;">
+            <div class="title-text-group">
+              <i class="fa-solid fa-chart-line" style="color: var(--emerald-accent);"></i>
+              <span>Live Observability &amp; Telemetry Dashboard</span>
+            </div>
+            <button id="btn-refresh-global-telemetry" title="Sync live telemetry from Langfuse" style="background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.3); color: var(--emerald-accent); padding: 5px 12px; border-radius: var(--radius-sm); font-size: 0.775rem; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600; transition: all 0.2s;">
+              <i class="fa-solid fa-rotate-right" id="global-refresh-icon"></i> Refresh Telemetry
+            </button>
+          </div>
+
+          <div class="obs-section-header">
+            <i class="fa-solid fa-globe" style="color: var(--cyan-accent);"></i>
+            SYSTEM CUMULATIVE METRICS (OVERALL SESSION)
+          </div>
+
+          <div class="obs-cards-grid">
+            <!-- Card 1: Total Queries -->
+            <div class="obs-card">
+              <div class="obs-card-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-accent);">
+                <i class="fa-solid fa-comments"></i>
+              </div>
+              <div class="obs-card-content">
+                <div class="obs-card-label">TOTAL QUERIES</div>
+                <div class="obs-card-val"><span id="metric-total-queries">0</span> Processed</div>
+                <div class="obs-subtext"><span id="metric-auto-count">0</span> Auto &bull; <span id="metric-hitl-count">0</span> HITL Paused</div>
+              </div>
+            </div>
+
+            <!-- Card 2: Average Latency -->
+            <div class="obs-card">
+              <div class="obs-card-icon" style="background: rgba(6, 182, 212, 0.15); color: var(--cyan-accent);">
+                <i class="fa-solid fa-bolt"></i>
+              </div>
+              <div class="obs-card-content">
+                <div class="obs-card-label">AVERAGE LATENCY</div>
+                <div class="obs-card-val" id="metric-latency">0.00 ms</div>
+                <div class="obs-subtext">Avg: <span id="metric-avg-latency">0ms</span> (P95: <span id="metric-p95-latency">0ms</span>)</div>
+              </div>
+            </div>
+
+            <!-- Card 3: Qdrant Corpus -->
+            <div class="obs-card">
+              <div class="obs-card-icon" style="background: rgba(245, 158, 11, 0.15); color: var(--amber-accent);">
+                <i class="fa-solid fa-database"></i>
+              </div>
+              <div class="obs-card-content">
+                <div class="obs-card-label">QDRANT CORPUS</div>
+                <div class="obs-card-val"><span id="metric-qdrant-chunks">83</span> Active Vectors</div>
+                <div class="obs-subtext">Collection: <span id="metric-qdrant-collection">careflow_corpus</span> &bull; Status: <strong style="color: var(--emerald-accent);" id="metric-qdrant-status">ONLINE</strong></div>
+              </div>
+            </div>
+
+            <!-- Card 4: System Safety Rate -->
+            <div class="obs-card">
+              <div class="obs-card-icon" style="background: rgba(99, 102, 241, 0.15); color: var(--violet-accent);">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div class="obs-card-content">
+                <div class="obs-card-label">SYSTEM SAFETY RATE</div>
+                <div class="obs-card-val" style="color: var(--emerald-accent);" id="metric-safety-rate">100% Passed</div>
+                <div class="obs-subtext"><span id="metric-violations-count">0</span> Safety Violations</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 2 Subtitle Banner -->
+          <div class="obs-section-header" style="margin-top: 14px;">
+            <i class="fa-solid fa-bolt" style="color: var(--cyan-accent);"></i>
+            ACTIVE REQUEST TELEMETRY (LAST QUERY: <span id="metric-active-rec-id">#REC-10021</span>)
+          </div>
+
+          <div class="obs-cards-grid">
+            <!-- Card 5: Agent Node Latency Waterfall -->
+            <div class="obs-card half-width">
+              <div class="obs-card-content">
+                <div class="obs-card-label" style="margin-bottom: 6px;">
+                  <i class="fa-solid fa-chart-simple" style="color: var(--cyan-accent);"></i>
+                  AGENT NODE LATENCY WATERFALL
+                </div>
+                <div class="waterfall-list" id="node-latency-waterfall">
+                  <div class="waterfall-item">
+                    <span class="node-name">intake_triage</span>
+                    <div class="bar-track"><div class="bar-fill cyan" style="width: 0%;"></div></div>
+                    <span class="node-time">0ms (0%)</span>
+                  </div>
+                  <div class="waterfall-item">
+                    <span class="node-name">policy_vector_rag</span>
+                    <div class="bar-track"><div class="bar-fill violet" style="width: 0%;"></div></div>
+                    <span class="node-time">0ms (0%)</span>
+                  </div>
+                  <div class="waterfall-item">
+                    <span class="node-name">safety_critic</span>
+                    <div class="bar-track"><div class="bar-fill amber" style="width: 0%;"></div></div>
+                    <span class="node-time">0ms (0%)</span>
+                  </div>
+                  <div class="waterfall-item">
+                    <span class="node-name">human_checkpoint</span>
+                    <div class="bar-track"><div class="bar-fill rose" style="width: 0%;"></div></div>
+                    <span class="node-time">0ms (0%)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 6: Qdrant Vector Store Insights -->
+            <div class="obs-card half-width">
+              <div class="obs-card-content">
+                <div class="obs-card-label" style="margin-bottom: 6px;">
+                  <i class="fa-solid fa-magnifying-glass-location" style="color: var(--amber-accent);"></i>
+                  QDRANT VECTOR STORE INSIGHTS
+                </div>
+                <div class="qdrant-details-grid" id="qdrant-insights-box">
+                  <div class="qdrant-row">
+                    <span>Query Match:</span>
+                    <strong id="qdrant-match-intent">--</strong>
+                  </div>
+                  <div class="qdrant-row">
+                    <span>Similarity:</span>
+                    <strong style="color: var(--emerald-accent);" id="qdrant-similarity-score">--</strong>
+                  </div>
+                  <div class="qdrant-row">
+                    <span>Source File:</span>
+                    <em id="qdrant-source-file">--</em>
+                  </div>
+                  <div class="qdrant-row">
+                    <span>Chunk ID:</span>
+                    <code id="qdrant-chunk-id">--</code>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Guardrails Card -->
+            <div class="obs-card wide">
+              <div class="obs-card-icon" style="background: rgba(16, 185, 129, 0.15); color: var(--emerald-accent);">
+                <i class="fa-solid fa-shield-halved"></i>
+              </div>
+              <div class="obs-card-content">
+                <div class="obs-card-label">Guardrails Status</div>
+                <div class="guard-list">
+                  <div class="guard-item">
+                    <span>Input Injection Filter</span>
+                    <span class="badge-status ok" id="guard-injection">PASSED</span>
+                  </div>
+                  <div class="guard-item">
+                    <span>Clinical Safety Review</span>
+                    <span class="badge-status ok" id="guard-safety">APPROVED</span>
+                  </div>
+                  <div class="guard-item">
+                    <span>Scope-of-Practice Standard</span>
+                    <span class="badge-status ok" id="guard-scope">ENFORCED</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card 1: Total Count Traces (Langfuse Metric + Day-Wise Bar Plot) -->
+            <div class="obs-card half-width" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px; background: rgba(15, 23, 42, 0.65);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-size: 1.05rem; font-weight: 700; color: #ffffff; font-family: var(--font-heading);">Total Count Traces</div>
+                  <div style="font-size: 0.775rem; color: var(--text-muted);">Shows the count of Traces</div>
+                </div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: var(--emerald-accent); font-family: var(--font-heading); line-height: 1;" id="langfuse-total-traces-num">--</div>
+              </div>
+              <div style="width: 100%; height: 200px; position: relative; margin-top: 4px; padding: 4px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <canvas id="langfuse-traces-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Card 2: Total Cost (Langfuse Metric + Day-Wise Bar Plot) -->
+            <div class="obs-card half-width" style="flex-direction: column; align-items: stretch; gap: 8px; padding: 16px; background: rgba(15, 23, 42, 0.65);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-size: 1.05rem; font-weight: 700; color: #ffffff; font-family: var(--font-heading);">Total Cost</div>
+                  <div style="font-size: 0.775rem; color: var(--text-muted);">Accumulated model & token cost</div>
+                </div>
+                <div style="font-size: 2.2rem; font-weight: 800; color: var(--violet-accent); font-family: var(--font-heading); line-height: 1;" id="langfuse-total-cost-num">--</div>
+              </div>
+              <div style="width: 100%; height: 200px; position: relative; margin-top: 4px; padding: 4px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <canvas id="langfuse-cost-chart"></canvas>
+              </div>
+            </div>
+
+            <!-- Langfuse Live P95 Latency Dashboard Card -->
+            <div class="obs-card wide" style="flex-direction: column; align-items: stretch; gap: 10px; padding: 16px; background: rgba(15, 23, 42, 0.65);">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <div style="font-size: 1.05rem; font-weight: 700; color: #ffffff; font-family: var(--font-heading);">
+                    <i class="fa-solid fa-chart-line" style="color: var(--cyan-accent); margin-right: 6px;"></i>
+                    P95 Latency by Level (Observations)
+                  </div>
+                  <div style="font-size: 0.775rem; color: var(--text-muted);">Avg trace response latency across observations</div>
+                </div>
+                <div style="font-size: 1.15rem; font-weight: 700; color: var(--cyan-accent); font-family: var(--font-heading); line-height: 1;" id="langfuse-avg-latency-num">--</div>
+              </div>
+              <div class="langfuse-chart-container" style="width: 100%; height: 280px; position: relative; margin-top: 4px; padding: 10px; background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <canvas id="langfuse-p95-chart"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Section 3 Subtitle Banner -->
+          <div class="obs-section-header" style="margin-top: 14px;">
+            <i class="fa-solid fa-terminal" style="color: var(--cyan-accent);"></i>
+            LIVE LANGFUSE OPENTELEMETRY TRACE SPAN LOG STREAM
+          </div>
+
+          <div class="obs-cards-grid">
+            <!-- System Execution Trace Log Card -->
+            <div class="obs-card wide log-card">
+              <div class="obs-card-content">
+                <div class="telemetry-log-box" id="telemetry-log-box">
+                  <div class="log-line"><span class="log-time">[SYSTEM]</span> <span class="log-info">LangGraph multi-agent execution engine initialized</span> &bull; OpenTelemetry Tracer Active</div>
+                  <div class="log-line"><span class="log-time">[METRICS]</span> <span class="log-info">Observability listener attached to /chat and /resume endpoints</span></div>
+                  <div class="log-line"><span class="log-time">[QDRANT]</span> <span class="log-info">Vector Store Collection 'copay_schedules_v1' ONLINE (1,420 vectors)</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- 30% RIGHT: Patient Portal Assistant -->
+    <aside class="panel patient-bot-panel">
+      
+      <!-- Panel Title Header -->
+      <div class="panel-header">
+        <div class="panel-title">
+          <i class="fa-solid fa-hospital-user" style="color: var(--cyan-accent);"></i>
+          Patient Portal
+        </div>
+        <span class="patient-active-badge"><span class="status-dot"></span> System Ready</span>
+      </div>
+
+      <!-- Closed Launcher State (DEFAULT ON START) -->
+      <div id="patient-bot-launcher" class="patient-bot-launcher-box">
+        <div class="launcher-card">
+          <div class="launcher-icon">
+            <i class="fa-solid fa-comments"></i>
+          </div>
+          <h3>Patient Care Assistant</h3>
+          <p>Start a conversation to check coverage, track referrals, or speak with an assistant.</p>
+          <button id="btn-open-patient-bot" class="btn-bot-trigger">
+            <i class="fa-solid fa-comment-dots"></i>
+            <span>Launch Chat</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Active Bot Chat Widget Container (HIDDEN BY DEFAULT) -->
+      <div id="patient-bot-widget" class="patient-bot-widget" style="display: none;">
+        <div class="panel-sub-header">
+          <div class="sub-header-title">
+            <i class="fa-solid fa-robot" style="color: var(--cyan-accent);"></i>
+            Assistant Console
+          </div>
+          <button id="btn-close-patient-bot" class="btn-icon-min" title="Minimize Chat Widget">
+            <i class="fa-solid fa-minus"></i>
+          </button>
+        </div>
+
+        <!-- Patient Messages Area -->
+        <div class="chat-messages-container" id="patient-chat-messages">
+          <!-- Initial Step 2 Bot Greeting -->
+          <div class="message-wrapper assistant">
+            <div class="message-header">
+              <i class="fa-solid fa-robot"></i>
+              <span>CareFlow Bot</span>
+            </div>
+            <div class="message-bubble">
+              Hello! Welcome to Meridian Health Partners. Please enter your <strong>Patient ID</strong> to get started.
+            </div>
+          </div>
+        </div>
+
+        <!-- Patient Input Bar -->
+        <div class="chat-input-wrapper">
+          <textarea id="patient-chat-input" class="chat-input" placeholder="Enter Patient ID (e.g. MHP-P-10021)..." rows="1"></textarea>
+          <button id="patient-btn-send" class="btn-send">
+            <i class="fa-solid fa-paper-plane"></i>
+          </button>
+        </div>
+      </div>
+
+    </aside>
+
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
