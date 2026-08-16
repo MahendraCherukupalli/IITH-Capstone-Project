@@ -1,0 +1,47 @@
+{
+  "domain": "CareFlow -- AI Care Coordination Assistant",
+  "toolkit_version": "1.0.1",
+  "complete": true,
+  "generated_at": "2026-08-11T03:11:32.503152+00:00",
+  "seed": 42,
+  "generator": {
+    "provider": "gemini",
+    "model": "gemini-3.5-flash"
+  },
+  "assets": {
+    "eval": {
+      "count": 20,
+      "by_category": {
+        "guardrail": 2,
+        "injection": 1,
+        "factual": 8,
+        "unanswerable": 5,
+        "multi_hop": 4
+      },
+      "path": "eval/golden_set.json"
+    }
+  },
+  "public_sources_referenced": [
+    {
+      "name": "Synthea (MITRE)",
+      "url": "https://synthea.mitre.org/downloads",
+      "use": "FHIR resource shapes and patient-history distributions",
+      "licence": "Free of cost, privacy and security restrictions"
+    },
+    {
+      "name": "IRDAI Master Circular on Health Insurance Business",
+      "url": "https://irdai.gov.in",
+      "use": "Disclosure fields and claim-process vocabulary (India context)",
+      "licence": "Government of India publication"
+    },
+    {
+      "name": "CMS Summary of Benefits and Coverage",
+      "url": "https://www.cms.gov",
+      "use": "Benefit-table layout",
+      "licence": "US Government work, public domain"
+    }
+  ],
+  "synthetic": true,
+  "contains_real_personal_data": false,
+  "notice": "All records in this corpus are synthetic. Any resemblance to a real person, company, contract, or patient is coincidental. Public datasets listed under public_sources_referenced were used for schema and distribution grounding only; consult each source's own licence before redistributing anything derived from it."
+}
